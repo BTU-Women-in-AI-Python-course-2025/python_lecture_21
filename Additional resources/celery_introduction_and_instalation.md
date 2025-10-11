@@ -39,7 +39,7 @@ pip install django-celery-beat
 
 Inside your **main Django project folder** (where `settings.py` lives):
 
-### Create `architecture_portal/celery.py`
+### Create `your_project_name/celery.py`
 
 ```python
 import os
