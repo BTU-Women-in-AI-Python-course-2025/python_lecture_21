@@ -45,9 +45,9 @@ Inside your **main Django project folder** (where `settings.py` lives):
 import os
 from celery import Celery
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'architecture_portal.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings')
 
-app = Celery('architecture_portal')
+app = Celery('your_project_name')
 
 # Load configuration from Django settings using the CELERY_ namespace
 app.config_from_object('django.conf:settings', namespace='CELERY')
@@ -63,7 +63,7 @@ def debug_task(self):
 
 ---
 
-### Update `architecture_portal/__init__.py`
+### Update `your_project_name/__init__.py`
 
 This ensures Celery starts when Django starts.
 
