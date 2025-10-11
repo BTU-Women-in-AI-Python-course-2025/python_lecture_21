@@ -134,7 +134,7 @@ docker ps
 From your project root (same folder as `manage.py`):
 
 ```bash
-celery -A architecture_portal worker --loglevel=info
+celery -A your_project_name worker --loglevel=info
 ```
 
 You should see output like:
@@ -159,7 +159,7 @@ If you installed `django-celery-beat`:
 3. Start the Beat scheduler:
 
    ```bash
-   celery -A architecture_portal beat --loglevel=info
+   celery -A your_project_name beat --loglevel=info
    ```
 
 Now you can define periodic tasks through the Django Admin.
@@ -171,6 +171,6 @@ Now you can define periodic tasks through the Django Admin.
 | Component         | Purpose                         | Example Command                                        |
 | ----------------- | ------------------------------- | ------------------------------------------------------ |
 | **Redis**         | Message broker & result backend | `docker run -d --name redis -p 6379:6379 redis`        |
-| **Celery Worker** | Executes background tasks       | `celery -A architecture_portal worker --loglevel=info` |
-| **Celery Beat**   | Handles scheduled tasks         | `celery -A architecture_portal beat --loglevel=info`   |
+| **Celery Worker** | Executes background tasks       | `celery -A your_project_name worker --loglevel=info` |
+| **Celery Beat**   | Handles scheduled tasks         | `celery -A your_project_name beat --loglevel=info`   |
 
