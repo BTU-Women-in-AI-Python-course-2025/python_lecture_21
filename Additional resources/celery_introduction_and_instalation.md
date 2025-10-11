@@ -146,7 +146,9 @@ You should see output like:
 
 ---
 
-## Step 6. (Optional) Run Celery Beat for Scheduled Tasks
+## Step 6. Run Celery Beat for Scheduled Tasks
+
+(We will study the use of periodic tasks in detail in Lecture 22)
 
 If you installed `django-celery-beat`:
 
