@@ -8,7 +8,7 @@ admin.site.register(BannerImage)
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'create_date', 'update_date', 'active', 'deleted', 'published', 'archived')
+    list_display = ('title', 'create_date', 'order', 'active', 'deleted', 'published', 'archived')
     list_editable = ('deleted',)
     list_filter = ('active', 'deleted', 'create_date', 'update_date', 'category')
     search_fields = ('title', 'text')

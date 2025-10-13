@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 
 from blog.filter_set import BlogPostFilter
+from blog.tasks import delete_blog_post, reorder_blog_post
 from blog.models import BlogPost, Author
 from blog.pagination import BlogPostPagination, BlogPostCursorPagination
 from blog.permissions import ReadOnlyOrAdminOrOwner
@@ -12,7 +13,8 @@ from blog.serializers import (
     BlogPostDetailSerializer,
     BlogPostCreateUpdateSerializer,
     AuthorSerializer,
-    BlogPostNotPublishedListSerializer
+    BlogPostNotPublishedListSerializer,
+    ReorderBlogPostSerializer
 )
 
 
@@ -76,6 +78,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             return BlogPostDetailSerializer
         elif self.action == 'not_published':
             return BlogPostNotPublishedListSerializer
+        elif self.action == 'reorder_blog_post':
+            return ReorderBlogPostSerializer
         return BlogPostListSerializer
 
     def list(self, request, *args, **kwargs):
@@ -117,6 +121,19 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         kwargs['partial'] = True
         # code here
         return self.update(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'])
+    def delete_blog_post(self, request):
+        delete_blog_post.delay()
+        return Response(data={'proces successfully started'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def reorder_blog_post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data)
+        reorder_blog_post.delay(**serializer.validated_data)
+        return Response(data={'proces successfully started'}, status=status.HTTP_200_OK)
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
