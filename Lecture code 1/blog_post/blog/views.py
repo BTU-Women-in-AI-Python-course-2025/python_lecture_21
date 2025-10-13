@@ -1,10 +1,12 @@
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 
 from blog.filter_set import BlogPostFilter
-from blog.tasks import delete_blog_post, reorder_blog_post
+from blog.tasks import delete_blog_post, reorder_blog_post, add_banner_image
 from blog.models import BlogPost, Author
 from blog.pagination import BlogPostPagination, BlogPostCursorPagination
 from blog.permissions import ReadOnlyOrAdminOrOwner
@@ -14,7 +16,8 @@ from blog.serializers import (
     BlogPostCreateUpdateSerializer,
     AuthorSerializer,
     BlogPostNotPublishedListSerializer,
-    ReorderBlogPostSerializer
+    ReorderBlogPostSerializer,
+    BlogPostBannerSerializer
 )
 
 
@@ -80,6 +83,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             return BlogPostNotPublishedListSerializer
         elif self.action == 'reorder_blog_post':
             return ReorderBlogPostSerializer
+        elif self.action == 'add_banner_image':
+            return BlogPostBannerSerializer
         return BlogPostListSerializer
 
     def list(self, request, *args, **kwargs):
@@ -134,6 +139,19 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         print(serializer.validated_data)
         reorder_blog_post.delay(**serializer.validated_data)
         return Response(data={'proces successfully started'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def add_banner_image(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        image = serializer.validated_data.get('image')
+        file_path = default_storage.save(f"banner_image/{image.name}", ContentFile(image.read()))
+
+        add_banner_image.delay(image_url=file_path,
+                               blog_post_id=self.get_object().id)
+        return Response(
+            {'status': 'banner image successfully created'},
+            status=status.HTTP_200_OK)
 
 
 class AuthorViewSet(viewsets.ModelViewSet):

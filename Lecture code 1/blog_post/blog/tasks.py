@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from blog.models import BlogPost
+from blog.models import BlogPost, BannerImage
 
 
 @shared_task
@@ -25,3 +25,13 @@ def reorder_blog_post(sort_field: str, asc_desc: str):
         blog_post.order = index
         blog_post.save(update_fields=['order'])
     print(f"Updated order for {blog_posts.count()} blog posts")
+
+@shared_task
+def add_banner_image(image_url, blog_post_id: int):
+    try:
+        blog_post = BlogPost.objects.get(id=blog_post_id)
+        BannerImage.objects.create(blog_post=blog_post, image=image_url)
+        return f"Banner image created"
+    except BlogPost.DoesNotExist:
+        return f"Blog Post with ID {blog_post_id} not found."
+

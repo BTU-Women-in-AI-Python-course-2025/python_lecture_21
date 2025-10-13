@@ -75,3 +75,9 @@ class BlogPostNotPublishedListSerializer(BlogPostListSerializer):
 class ReorderBlogPostSerializer(serializers.Serializer):
     sort_field = serializers.CharField(label='Sort field', required=True)
     asc_desc = serializers.CharField(label='Asc-Desc', required=True)
+
+
+class BlogPostBannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BannerImage
+        fields = ['image']
