@@ -1,7 +1,6 @@
 from celery import shared_task
 from django.core.mail import send_mail
 
-from blog.choices import BLOG_POST_CATEGORY_CHOICES
 from blog.models import BlogPost, BannerImage
 from blog_post import settings
 
@@ -9,7 +8,6 @@ from blog_post import settings
 @shared_task
 def send_email_task(email: str):
     print(f"Sending email to {email}")
-
 
 @shared_task
 def delete_blog_post():
