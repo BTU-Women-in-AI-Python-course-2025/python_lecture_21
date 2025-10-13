@@ -1,31 +1,33 @@
-# Django + Celery: Introduction, Installation & Configuration
+# Django + Celery: Installation & Configuration (with Redis)
 
 ## What Is Celery?
 
-**Celery** is a powerful, production-ready asynchronous task queue. It's used for running time-consuming tasks like sending emails, processing images, or background calculations outside the main request/response cycle.
+**Celery** is a powerful, production-ready asynchronous task queue.
+It lets you run long or resource-intensive operations — such as sending emails, generating reports, or processing images — **in the background** instead of blocking user requests.
 
-> Think of it as a way to **run Python functions in the background**.
-
----
-
-## 🚀 Why Use Celery with Django?
-
-* Offload slow tasks from the main app
-* Schedule recurring jobs (with **Celery Beat**)
-* Retry failed tasks automatically
-* Scales well with message brokers like Redis or RabbitMQ
+> Think of it as a way to **run Python functions asynchronously** outside your main Django thread.
 
 ---
 
-## 📦 Installation
+## Why Use Celery with Django?
 
-Install Celery and a broker (we’ll use Redis):
+✅ Offload slow or CPU-heavy tasks
+✅ Schedule recurring jobs (with **Celery Beat**)
+✅ Retry failed jobs automatically
+✅ Integrates well with brokers like **Redis** or **RabbitMQ**
+✅ Scales horizontally across multiple workers
+
+---
+
+## Installation
+
+Install Celery and Redis (as the message broker):
 
 ```bash
 pip install celery redis
 ```
 
-If you want to use **Celery Beat** (for periodic tasks):
+If you want periodic (scheduled) tasks:
 
 ```bash
 pip install django-celery-beat
@@ -33,50 +35,72 @@ pip install django-celery-beat
 
 ---
 
-## 🛠️ Configuring Celery in Django
+## Step 1. Configure Celery in Your Django Project
 
-### 1. Create `celery.py` in your main Django project folder (same as `settings.py`)
+Inside your **main Django project folder** (where `settings.py` lives):
+
+### Create `your_project_name/celery.py`
 
 ```python
-# your_project/celery.py
-
 import os
 from celery import Celery
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings')
 
-app = Celery('your_project')
+app = Celery('your_project_name')
+
+# Load configuration from Django settings using the CELERY_ namespace
 app.config_from_object('django.conf:settings', namespace='CELERY')
+
+# Auto-discover tasks from all installed Django apps
 app.autodiscover_tasks()
+
+
+@app.task(bind=True)
+def debug_task(self):
+    print(f'Request: {self.request!r}')
 ```
 
-### 2. Modify `__init__.py` (same folder as `settings.py`)
+---
+
+### Update `your_project_name/__init__.py`
+
+This ensures Celery starts when Django starts.
 
 ```python
-# your_project/__init__.py
-
 from .celery import app as celery_app
 
-__all__ = ['celery_app']
+__all__ = ('celery_app',)
 ```
 
 ---
 
-## 🔧 Django Settings Configuration
+## Step 2. Configure Django Settings for Celery
+
+In your **`settings.py`**, add:
 
 ```python
-# settings.py
-
+# Celery configuration
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+```
+
+If you use **Celery Beat** (optional):
+
+```python
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 ```
 
 ---
 
-## 🗂️ Creating a Celery Task
+## Step 3. Create a Celery Task
 
-In your Django app (e.g. `myapp/tasks.py`):
+In one of your Django apps (e.g. `application/tasks.py`):
 
 ```python
 from celery import shared_task
@@ -84,45 +108,71 @@ from celery import shared_task
 @shared_task
 def send_email_task(email):
     print(f"Sending email to {email}")
+    # actual email sending logic here
 ```
 
 ---
 
-## ▶️ Running Celery Worker
+## Step 4. Start Redis
 
-Start the Redis server:
+If Redis isn’t already running, start it with Docker:
 
 ```bash
-redis-server
+docker run -d --name redis -p 6379:6379 redis
 ```
 
-Start the Celery worker:
+Check that it’s active:
 
 ```bash
-celery -A your_project worker --loglevel=info
+docker ps
 ```
 
 ---
 
-## 🕒 Using Celery Beat (Scheduled Tasks)
+## Step 5. Run Celery Worker
+
+From your project root (same folder as `manage.py`):
+
+```bash
+celery -A your_project_name worker --loglevel=info
+```
+
+You should see output like:
+
+```
+[INFO/MainProcess] Connected to redis://localhost:6379/0
+[INFO/MainProcess] celery@yourhost ready.
+```
+
+---
+
+## Step 6. Run Celery Beat for Scheduled Tasks
+
+(We will study the use of periodic tasks in detail in Lecture 22)
+
+If you installed `django-celery-beat`:
 
 1. Add `'django_celery_beat'` to `INSTALLED_APPS`
 2. Run migrations:
 
-```bash
-python manage.py migrate
-```
+   ```bash
+   python manage.py migrate
+   ```
+3. Start the Beat scheduler:
 
-3. Add to `settings.py`:
+   ```bash
+   celery -A your_project_name beat --loglevel=info
+   ```
 
-```python
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-```
+Now you can define periodic tasks through the Django Admin.
 
-4. Start beat:
+---
 
-```bash
-celery -A your_project beat --loglevel=info
-```
+## ✅ Summary
 
-Now you can define periodic tasks in the Django admin via `django-celery-beat`.
+| Component         | Purpose                         | Example Command                                        |
+| ----------------- | ------------------------------- | ------------------------------------------------------ |
+| **Redis**         | Message broker & result backend | `docker run -d --name redis -p 6379:6379 redis`        |
+| **Celery Worker** | Executes background tasks       | `celery -A your_project_name worker --loglevel=info` |
+| **Celery Beat**   | Handles scheduled tasks         | `celery -A your_project_name beat --loglevel=info`   |
+
