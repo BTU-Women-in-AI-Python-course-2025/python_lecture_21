@@ -81,3 +81,6 @@ class BlogPostBannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = BannerImage
         fields = ['image']
+
+class SendBlogPostEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(label="Email", required=True)

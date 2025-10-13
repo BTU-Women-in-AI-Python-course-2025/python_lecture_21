@@ -1,6 +1,9 @@
 from celery import shared_task
+from django.core.mail import send_mail
 
+from blog.choices import BLOG_POST_CATEGORY_CHOICES
 from blog.models import BlogPost, BannerImage
+from blog_post import settings
 
 
 @shared_task
@@ -35,3 +38,16 @@ def add_banner_image(image_url, blog_post_id: int):
     except BlogPost.DoesNotExist:
         return f"Blog Post with ID {blog_post_id} not found."
 
+@shared_task
+def send_blog_post_to_email(email: str, blog_post_id: int):
+    try:
+        blog_post = BlogPost.objects.get(id=blog_post_id)
+        send_mail(
+            subject=f"{blog_post.title}",
+            message=f"{blog_post.title} - {blog_post.text} - {blog_post.get_category_display()}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+        )
+        return f"Email sent to {blog_post.title}"
+    except BlogPost.DoesNotExist:
+        return f"Order with ID {blog_post_id} not found."

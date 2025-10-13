@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 
 from blog.filter_set import BlogPostFilter
-from blog.tasks import delete_blog_post, reorder_blog_post, add_banner_image
+from blog.tasks import delete_blog_post, reorder_blog_post, add_banner_image, send_blog_post_to_email
 from blog.models import BlogPost, Author
 from blog.pagination import BlogPostPagination, BlogPostCursorPagination
 from blog.permissions import ReadOnlyOrAdminOrOwner
@@ -17,7 +17,8 @@ from blog.serializers import (
     AuthorSerializer,
     BlogPostNotPublishedListSerializer,
     ReorderBlogPostSerializer,
-    BlogPostBannerSerializer
+    BlogPostBannerSerializer,
+    SendBlogPostEmailSerializer
 )
 
 
@@ -85,6 +86,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             return ReorderBlogPostSerializer
         elif self.action == 'add_banner_image':
             return BlogPostBannerSerializer
+        elif self.action == 'send_blog_post_to_email':
+            return SendBlogPostEmailSerializer
         return BlogPostListSerializer
 
     def list(self, request, *args, **kwargs):
@@ -153,6 +156,13 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             {'status': 'banner image successfully created'},
             status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'])
+    def send_blog_post_to_email(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        send_blog_post_to_email.delay(
+            email=serializer.validated_data['email'], blog_post_id=self.get_object().id)
+        return Response(data={f'email sent to {serializer.data['email']}'}, status=status.HTTP_200_OK)
 
 class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
