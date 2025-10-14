@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.core.mail import send_mail
 
-from blog.models import BlogPost
+from blog.models import BlogPost, BlogPostCover
 from blog_post import settings
 
 
@@ -42,5 +42,15 @@ def send_blog_post_to_email(email: str, blog_post_id: int):
             recipient_list=[email],
         )
         return f"Email sent to {blog_post}"
+    except BlogPost.DoesNotExist:
+        return f"Blog Post with ID {blog_post_id} not found."
+
+
+@shared_task
+def create_blog_post_cover(image_url: str, blog_post_id: int):
+    try:
+        blog_post = BlogPost.objects.get(id=blog_post_id)
+        BlogPostCover.objects.create(image=image_url, blog_post=blog_post)
+        print(f"Blog post cover created")
     except BlogPost.DoesNotExist:
         return f"Blog Post with ID {blog_post_id} not found."

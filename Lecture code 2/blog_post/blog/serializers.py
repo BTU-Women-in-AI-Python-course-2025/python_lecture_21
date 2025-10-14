@@ -77,3 +77,9 @@ class BlogPostReorderSerializer(serializers.Serializer):
 
 class BlogPostSendEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(label='Email address', required=True)
+
+
+class BlogPostCoverSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPostCover
+        fields = ['image']
