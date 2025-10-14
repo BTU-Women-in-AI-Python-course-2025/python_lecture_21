@@ -68,3 +68,8 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
         else:
             BlogPostCover.objects.create(blog_post=instance, image=cover)
         return instance
+
+
+class BlogPostReorderSerializer(serializers.Serializer):
+    sort_field = serializers.CharField(label='Sort field', required=True)
+    asc_des = serializers.CharField(label='Asc_Des', required=True)

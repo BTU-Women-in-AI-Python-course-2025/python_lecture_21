@@ -1,3 +1,4 @@
+from django.core.serializers import serialize
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from blog.filtersets import BlogPostFilter
+from blog.tasks import delete_inactive_blog_posts, reorder_blog_posts
 from blog.models import BlogPost, Author
 from blog.pagination import BlogPostPagination
 from blog.permissions import ReadOnlyOrAdmin, ReadOnlyOrIsOwnerOrAdmin
@@ -12,7 +14,7 @@ from blog.serializers import (
     BlogPostListSerializer,
     BlogPostDetailSerializer,
     BlogPostCreateUpdateSerializer,
-    AuthorSerializer
+    AuthorSerializer, BlogPostReorderSerializer
 )
 
 class BlogPostListViewSet(mixins.ListModelMixin,
@@ -67,6 +69,8 @@ class BlogPostViewSet(ModelViewSet):
             return BlogPostCreateUpdateSerializer
         elif self.action == 'publish':
             return  BlogPostListSerializer
+        elif self.action == 'reorder_blog_posts':
+            return BlogPostReorderSerializer
         else:
             return BlogPostListSerializer
 
@@ -111,6 +115,18 @@ class BlogPostViewSet(ModelViewSet):
         archived_posts = BlogPost.objects.filter(archived=True)
         serializer = self.get_serializer(archived_posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def delete_inactive_blog_posts(self, request):
+        delete_inactive_blog_posts.delay()
+        return Response({'Process started successfully'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def reorder_blog_posts(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reorder_blog_posts.delay(**serializer.validated_data)
+        return Response({'Process started successfully'}, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
