@@ -73,3 +73,7 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
 class BlogPostReorderSerializer(serializers.Serializer):
     sort_field = serializers.CharField(label='Sort field', required=True)
     asc_des = serializers.CharField(label='Asc_Des', required=True)
+
+
+class BlogPostSendEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(label='Email address', required=True)

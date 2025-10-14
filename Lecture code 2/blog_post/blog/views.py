@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from blog.filtersets import BlogPostFilter
-from blog.tasks import delete_inactive_blog_posts, reorder_blog_posts
+from blog.tasks import delete_inactive_blog_posts, reorder_blog_posts, send_blog_post_to_email
 from blog.models import BlogPost, Author
 from blog.pagination import BlogPostPagination
 from blog.permissions import ReadOnlyOrAdmin, ReadOnlyOrIsOwnerOrAdmin
@@ -14,7 +14,7 @@ from blog.serializers import (
     BlogPostListSerializer,
     BlogPostDetailSerializer,
     BlogPostCreateUpdateSerializer,
-    AuthorSerializer, BlogPostReorderSerializer
+    AuthorSerializer, BlogPostReorderSerializer, BlogPostSendEmailSerializer
 )
 
 class BlogPostListViewSet(mixins.ListModelMixin,
@@ -71,6 +71,8 @@ class BlogPostViewSet(ModelViewSet):
             return  BlogPostListSerializer
         elif self.action == 'reorder_blog_posts':
             return BlogPostReorderSerializer
+        elif self.action == 'send_blog_post_to_email':
+            return BlogPostSendEmailSerializer
         else:
             return BlogPostListSerializer
 
@@ -126,6 +128,14 @@ class BlogPostViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reorder_blog_posts.delay(**serializer.validated_data)
+        return Response({'Process started successfully'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def send_blog_post_to_email(self, request, pk=None):
+        blop_post = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        send_blog_post_to_email.delay(email=serializer.validated_data['email'], blog_post_id=blop_post.id)
         return Response({'Process started successfully'}, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
